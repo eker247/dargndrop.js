@@ -1,13 +1,14 @@
+var addAttLabel = 'add files';
 var dz = {
   attachDiv: null,
+  adTab: null,
   counter: 0,
-  files: [],
-  input: null,
+  inputs: [],
 
   initDropZone: function() {
     this.attachDiv = document.getElementById('attach_div');
 
-    function preventDefaults (e) {
+    function preventDefaults(e) {
       e.preventDefault();
       e.stopPropagation();
     };
@@ -17,59 +18,55 @@ var dz = {
     });
 
     this.attachDiv.ondrop = function(e) { dz.dropHandler(e); };
-    this.input = document.createElement('input');
-    this.input.type = 'file';
-    this.input.multiple = true;
-    this.input.addEventListener('change', function(e) { dz.addFiles(e.target.files); });
-    this.printTable();
+    this.attachDiv.ondragover = function() { dz.attachDiv.style.background = '#ccc'; };
+    this.attachDiv.ondragleave = function() { dz.attachDiv.style.background = '#aaa'; };
+    this.attachDiv.innerHTML = '<table id="adTab" class="table table-striped table-sm">' +
+      `<span class="btn-attache btn-info" onclick="dz.addInput()">${addAttLabel}<span class="plus"> + </span></span>`;
+    this.adTab = this.attachDiv.children["adTab"];
   },
 
   printTable: function() {
-    var tab = '<table class="table table-striped">';
-    this.files.forEach(f => {
-      tab += `<tr><td>${f.name}</td>`;
-      tab += `<td>${f.size}</td>`;
-      tab += `<td>${f.type}</td>`;
-      tab += `<td><span class="btn btn-danger" onclick="dz.rmFile('${f.name}')">X</span></td></tr>`;
+    var tabData = '';
+    this.inputs.forEach(function(inp) {
+      tabData += `<tr><td>${inp.files[0].name}</td>` +
+        `<td><span onclick="dz.rmInput('${inp.id}')">rm</span></td>` + 
+        `</tr>`;
     });
-    tab += '</table>';
-    tab += `<button onclick="dz.addAttache()">Add Files</button>`;
-
-    this.attachDiv.innerHTML = tab;
+    this.adTab.innerHTML = tabData;
   },
 
-  addAttache: function() {
-    this.input.click();
+  addInput: function() {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.name = `attachement_${this.counter}`;
+    inp.id = `att${this.counter}`;
+    inp.style.visibility = 'hidden';
+    this.attachDiv.appendChild(inp);
+    inp.onchange = function(e) { dz.inputs.push(e.target); dz.printTable(); };
+    inp.click();
+    this.counter++;
   },
 
-  addFiles: function(files) {
-    if (!files) {
-      return;
-    }
-    for (i = 0; i < files.length; ++i) {
-      if (this.files.find(f => f.name === files[i].name)) {
-        continue;
-      }
-      this.files.push({
-        error: '',
-        name: files[i].name,
-        type: files[i].type,
-        tmp_name: '',
-        size: files[i].size
-      });
-    }
-    this.printTable();
-  },
-
-  rmFile: function(name) {
-    this.files = this.files.filter(f => f.name !== name);
+  rmInput: function(id) {
+    var toRemove = this.inputs.find(inp => inp.id === id );
+    this.inputs = this.inputs.filter(inp => inp !== toRemove);
+    this.attachDiv.removeChild(toRemove);
+    this.inputs = this.inputs.filter(inp => inp.id !== id);
     this.printTable();
   },
   
   dropHandler: function(e) {
     e.preventDefault();
-    var files = e.dataTransfer.files;
-    this.addFiles(files);
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.files = e.dataTransfer.files;
+    inp.name = `attachement_${this.counter}`;
+    inp.style.visibility = 'hidden';
+    inp.id = `att${this.counter}`;
+    this.attachDiv.appendChild(inp);
+    this.inputs.push(inp);
+    this.printTable(0);
+    this.counter++;
     return false;
   }
 };
